@@ -1,6 +1,6 @@
 {
   "name": "client-provider",
-  "version": "1.0.0",
+  "version": "1.0.2",
   "description": "",
   "type": "module",
   "main": "dist/index.js",
@@ -32,6 +32,6 @@
   },
   "peerDependencies": {
     "axios": "^1.7.9",
-    "ts-utils-helper": "^1.0.12"
+    "ts-utils-helper": "^1.0.21"
   }
 }
