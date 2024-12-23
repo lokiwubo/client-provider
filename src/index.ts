@@ -2,20 +2,37 @@ import { AnyLike } from 'ts-utils-helper';
 import { HttpClient } from './core';
 import { DefineHttpClient, HttpClientMiddleware, RequestTemplate } from './types';
 
+const addMiddleware = (
+    middleware: HttpClientMiddleware,
+    container: Set<HttpClientMiddleware<AnyLike>>,
+) => {
+    container.add(middleware);
+    return () => {
+        container.delete(middleware);
+    };
+};
 export const definedCreateHttpClient: DefineHttpClient = (context) => {
-    const middlewaresSet = new Set<HttpClientMiddleware>([]);
-    const httpClient = new HttpClient(() => [...middlewaresSet]);
+    const containerMiddlewaresSet = new Set<HttpClientMiddleware>([]);
     return Object.assign(
-        <T extends RequestTemplate>(defineApis: (apis: HttpClient, context: AnyLike) => T) => {
-            return defineApis(httpClient, context);
+        <T extends RequestTemplate>(
+            defineClientApis: (apis: HttpClient, context: AnyLike) => T,
+        ) => {
+            const scopeMiddlewaresSet = new Set<HttpClientMiddleware>([]);
+            const httpClient = new HttpClient(() => [
+                ...containerMiddlewaresSet,
+                ...scopeMiddlewaresSet,
+            ]);
+            const clientApis = defineClientApis(httpClient, context);
+            const apis = {
+                use: (middleware: HttpClientMiddleware) =>
+                    addMiddleware(middleware, scopeMiddlewaresSet),
+            };
+            return Object.assign(() => apis, clientApis);
         },
         {
-            use: (middleware: HttpClientMiddleware) => {
-                middlewaresSet.add(middleware);
-                return () => {
-                    middlewaresSet.delete(middleware);
-                };
-            },
+            use: (middleware: HttpClientMiddleware) =>
+                addMiddleware(middleware, containerMiddlewaresSet),
         },
     );
 };
+export * from './helper';
