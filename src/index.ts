@@ -1,6 +1,6 @@
 import { AnyLike } from 'ts-utils-helper';
 import { HttpClient } from './core';
-import { DefineHttpClient, HttpClientMiddleware, RequestTemplate } from './types';
+import { ClientApis, DefineHttpClient, HttpClientMiddleware, RequestTemplate } from './types';
 
 const addMiddleware = (
     middleware: HttpClientMiddleware,
@@ -15,19 +15,29 @@ export const definedCreateHttpClient: DefineHttpClient = (context) => {
     const containerMiddlewaresSet = new Set<HttpClientMiddleware>([]);
     return Object.assign(
         <T extends RequestTemplate>(
-            defineClientApis: (apis: HttpClient, context: AnyLike) => T,
+            defineClients: (clients: HttpClient, context: AnyLike, apis: ClientApis) => T,
         ) => {
             const scopeMiddlewaresSet = new Set<HttpClientMiddleware>([]);
             const httpClient = new HttpClient(() => [
                 ...containerMiddlewaresSet,
                 ...scopeMiddlewaresSet,
             ]);
-            const clientApis = defineClientApis(httpClient, context);
-            const apis = {
+            const apis: ClientApis = {
                 use: (middleware: HttpClientMiddleware) =>
                     addMiddleware(middleware, scopeMiddlewaresSet),
+                setPrefix: (prefix: string) => {
+                    addMiddleware(async (requestConfig, next) => {
+                        const url = requestConfig.url;
+                        requestConfig.url = `${prefix}/${url}`.replace(`${prefix}//`, `${prefix}/`);
+                        return next(requestConfig);
+                    }, scopeMiddlewaresSet);
+                },
             };
-            return Object.assign(() => apis, clientApis);
+            const clientApis = defineClients(httpClient, context, apis);
+            return {
+                ...apis,
+                client: clientApis,
+            };
         },
         {
             use: (middleware: HttpClientMiddleware) =>
