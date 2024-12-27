@@ -32,3 +32,23 @@ type DefineHttpClientOutput<TContext> = {
 export interface DefineHttpClient {
     <TContext = undefined>(context?: TContext): DefineHttpClientOutput<TContext>;
 }
+type Adaptor<TPayload, TResponse> = (
+    payload: TPayload,
+    response: TResponse,
+    config: AxiosRequestConfig,
+) => AnyLike;
+
+export interface RequestOptions<
+    TPayload = AnyLike,
+    TResponse = AnyLike,
+    TAdaptor extends Adaptor<TPayload, TResponse> = Adaptor<TPayload, TResponse>,
+> {
+    cache?: number;
+    requestAdaptor?: (config: AxiosRequestConfig) => AxiosRequestConfig;
+    adaptor?: TAdaptor;
+}
+
+export interface RequestXmlOptions
+    extends RequestOptions<AnyLike, AnyLike, Adaptor<AnyLike, AnyLike>> {
+    onProgress?: (event: ProgressEvent<XMLHttpRequestEventTarget>) => void;
+}
