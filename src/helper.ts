@@ -1,4 +1,4 @@
-import { AxiosRequestConfig, AxiosResponse, isAxiosError } from 'axios';
+import { AxiosRequestConfig, isAxiosError } from 'axios';
 import { AnyLike } from 'ts-utils-helper';
 import { RequestOptions } from './types';
 
@@ -58,18 +58,26 @@ export const getRequestAdaptorData = <
     return options?.requestAdaptor?.(requestConfig) ?? requestConfig;
 };
 
+type RequestConfigType = Omit<AxiosRequestConfig, 'params'>;
+
 export const getAdaptorData = <TPayload, TData, TOptions extends RequestOptions>(
     payload: TPayload,
     response: TData,
-    request: AxiosRequestConfig,
+    request: RequestConfigType,
     options?: TOptions,
 ) => {
     return options?.adaptor?.(payload, response, request) ?? response;
 };
-type RequestType = <TResponse, TOutPut = AxiosResponse<TResponse>>(
-    requestConfig: AxiosRequestConfig,
-    config?: RequestOptions<TResponse>,
-) => Promise<TOutPut>;
+type RequestType = <
+    TResponse,
+    TRequest extends RequestConfigType,
+    TConfig extends RequestOptions<TRequest['data'], TResponse>,
+>(
+    requestConfig: TRequest,
+    config?: TConfig,
+) => Promise<
+    TConfig['adaptor'] extends undefined ? TResponse : ReturnType<NonNullable<TConfig['adaptor']>>
+>;
 
 export const definedRequest = <T extends RequestType>(request: T): T => {
     return request;

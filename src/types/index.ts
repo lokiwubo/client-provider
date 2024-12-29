@@ -1,5 +1,5 @@
 import { AxiosRequestConfig } from 'axios';
-import { AnyLike } from 'ts-utils-helper';
+import { AnyLike, FunctionLike } from 'ts-utils-helper';
 import { HttpClient } from '../core';
 
 export interface HttpClientMiddleware<T = AnyLike> {
@@ -41,7 +41,7 @@ type Adaptor<TPayload, TResponse> = (
 export interface RequestOptions<
     TPayload = AnyLike,
     TResponse = AnyLike,
-    TAdaptor extends Adaptor<TPayload, TResponse> = Adaptor<TPayload, TResponse>,
+    TAdaptor extends FunctionLike = Adaptor<TPayload, TResponse>,
 > {
     cache?: number;
     requestAdaptor?: (config: AxiosRequestConfig) => AxiosRequestConfig;
