@@ -57,8 +57,12 @@ export const getRequestAdaptorData = <
 ) => {
     return options?.requestAdaptor?.(requestConfig) ?? requestConfig;
 };
-
-type RequestConfigType = Omit<AxiosRequestConfig, 'params'>;
+/**
+ * @description 请求配置类型
+ */
+export type RequestConfigType<T = AnyLike> = Omit<AxiosRequestConfig<T>, 'params' | 'data'> & {
+    data: T;
+};
 
 export const getAdaptorData = <TPayload, TData, TOptions extends RequestOptions>(
     payload: TPayload,
@@ -69,9 +73,10 @@ export const getAdaptorData = <TPayload, TData, TOptions extends RequestOptions>
     return options?.adaptor?.(payload, response, request) ?? response;
 };
 type RequestType = <
+    TPayload,
+    TRequest extends RequestConfigType<TPayload>,
+    TConfig extends RequestOptions<TPayload, TResponse>,
     TResponse,
-    TRequest extends RequestConfigType,
-    TConfig extends RequestOptions<TRequest['data'], TResponse>,
 >(
     requestConfig: TRequest,
     config?: TConfig,

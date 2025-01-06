@@ -46,6 +46,19 @@ export interface RequestOptions<
     cache?: number;
     requestAdaptor?: (config: AxiosRequestConfig) => AxiosRequestConfig;
     adaptor?: TAdaptor;
+    /**
+     * 单位 ms 控制请求超时
+     */
+    timeout?: number; // 单位 ms
+    /**
+     * 错误后的重试次数
+     */
+    retry?: number; // 重试次数
+    /**
+     * delay 单位 ms 控制请求间隔
+     * 延迟请求，防止请求过于频繁
+     */
+    delay?: number;
 }
 
 export interface RequestXmlOptions

@@ -1,9 +1,12 @@
 import axios, { AxiosInstance, AxiosRequestConfig, AxiosResponse } from 'axios';
 import { AnyLike, asyncMiddleware } from 'ts-utils-helper';
-import { ClientResponseCacheData, createHash, definedRequest } from './helper';
+import { ClientResponseCacheData, createHash, RequestConfigType } from './helper';
 import { createAdaptorMiddleware, createRequestAdaptorMiddleware } from './middlewares/adaptor';
 import { createAxiosMethodDiffMiddleware } from './middlewares/axios';
-import { HttpClientMiddleware, RequestXmlOptions } from './types';
+import { createDelayMiddleware } from './middlewares/delay';
+import { createRetryMiddleware } from './middlewares/retry';
+import { createTimeoutMiddleware } from './middlewares/timeout';
+import { HttpClientMiddleware, RequestOptions, RequestXmlOptions } from './types';
 
 /**
  * @description 支持中间件的HttpClient 后续可以扩展更多功能（比如缓存， 拦截器）
@@ -16,19 +19,34 @@ export class HttpClient {
     constructor(private getMiddleWares?: () => HttpClientMiddleware[]) {}
     private requestCache = new Map<string, Promise<AnyLike>>();
     private responseCache = new Map<string, ClientResponseCacheData<AnyLike>>();
-    public request = definedRequest(async (requestConfig, config) => {
+
+    async request<TPayload, TResponse>(
+        requestConfig: RequestConfigType<TPayload>,
+        config?: RequestOptions<TPayload, TResponse>,
+    ): Promise<AxiosResponse<TResponse>> {
         const cacheKey = createHash(JSON.stringify(requestConfig));
-        return asyncMiddleware<AxiosRequestConfig, AnyLike>([
+        const middlewares = [
             createAxiosMethodDiffMiddleware(),
             ...(this.getMiddleWares?.() ?? []),
             createRequestAdaptorMiddleware(cacheKey, this.requestCache, this.responseCache, config),
             createAdaptorMiddleware(config),
+        ];
+        if (config?.timeout) {
+            middlewares.unshift(createTimeoutMiddleware(config.timeout));
+        }
+        if (config?.retry) {
+            middlewares.unshift(createRetryMiddleware(config.retry));
+        }
+        if (config?.delay) {
+            middlewares.unshift(createDelayMiddleware(config.delay));
+        }
+        return asyncMiddleware<AxiosRequestConfig, AnyLike>([
+            ...middlewares,
             async (requestConfig) => {
                 return await this._axios.request(requestConfig);
             },
         ])(requestConfig);
-    });
-
+    }
     /**
      * @deprecated 废弃不建议使用 请使用 request 方法
      */

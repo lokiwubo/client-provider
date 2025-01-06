@@ -13,6 +13,10 @@ const addMiddleware = (
 };
 export const definedCreateHttpClient: DefineHttpClient = (context) => {
     const containerMiddlewaresSet = new Set<HttpClientMiddleware>([]);
+    /**
+     * 添加请求并发数 和 请求的优先级
+     */
+    // const requestList = new Set<RequestTemplate>();  //
     return Object.assign(
         <T extends RequestTemplate>(
             defineClients: (clients: HttpClient, context: AnyLike, apis: ClientApis) => T,
@@ -46,3 +50,21 @@ export const definedCreateHttpClient: DefineHttpClient = (context) => {
     );
 };
 export * from './helper';
+
+// export const createHttpClient = definedCreateHttpClient();
+// const reportHttpClient = createHttpClient((apis) => {
+//     return {
+//         updateReport: async () => {
+//             const { data } = await apis.request<{ b: string }, { a: string }>({
+//                 url: '/report/update',
+//                 data: Object.assign({}),
+//                 method: 'POST',
+//             });
+//             return data;
+//         },
+//     };
+// });
+
+// reportHttpClient.setPrefix('/inspection-report-admin-api');
+
+// export const reportApi = reportHttpClient.client;
