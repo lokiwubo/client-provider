@@ -1,5 +1,5 @@
 import { retryPromise } from 'ts-utils-helper';
-import { HttpClientMiddleware } from '../types';
+import type { HttpClientMiddleware } from '../types';
 
 /**
  * @description 用来处理错误重试的中间件

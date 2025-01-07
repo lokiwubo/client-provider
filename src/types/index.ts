@@ -1,6 +1,6 @@
-import { AxiosRequestConfig } from 'axios';
-import { AnyLike, FunctionLike } from 'ts-utils-helper';
-import { HttpClient } from '../core';
+import type { AxiosRequestConfig } from 'axios';
+import type { AnyLike } from 'ts-utils-helper';
+import type { HttpClient } from '../core';
 
 export interface HttpClientMiddleware<T = AnyLike> {
     (
@@ -38,14 +38,10 @@ type Adaptor<TPayload, TResponse> = (
     config: AxiosRequestConfig,
 ) => AnyLike;
 
-export interface RequestOptions<
-    TPayload = AnyLike,
-    TResponse = AnyLike,
-    TAdaptor extends FunctionLike = Adaptor<TPayload, TResponse>,
-> {
+export interface RequestOptions<TPayload = AnyLike, TResponse = AnyLike> {
     cache?: number;
     requestAdaptor?: (config: AxiosRequestConfig) => AxiosRequestConfig;
-    adaptor?: TAdaptor;
+    adaptor?: Adaptor<TPayload, TResponse>;
     /**
      * 单位 ms 控制请求超时
      */
@@ -61,7 +57,6 @@ export interface RequestOptions<
     delay?: number;
 }
 
-export interface RequestXmlOptions
-    extends RequestOptions<AnyLike, AnyLike, Adaptor<AnyLike, AnyLike>> {
+export interface RequestXmlOptions extends RequestOptions<AnyLike, AnyLike> {
     onProgress?: (event: ProgressEvent<XMLHttpRequestEventTarget>) => void;
 }

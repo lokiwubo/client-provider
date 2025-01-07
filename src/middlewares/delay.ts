@@ -1,5 +1,5 @@
 import { delay } from 'ts-utils-helper';
-import { HttpClientMiddleware } from '../types';
+import type { HttpClientMiddleware } from '../types';
 
 /**
  * @description

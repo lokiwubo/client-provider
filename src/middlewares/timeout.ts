@@ -1,5 +1,5 @@
 import { timeoutPromise } from 'ts-utils-helper';
-import { HttpClientMiddleware } from '../types';
+import type { HttpClientMiddleware } from '../types';
 
 /**
  * @description 用来控制请求超时

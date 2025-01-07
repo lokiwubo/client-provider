@@ -1,4 +1,4 @@
-import { HttpClientMiddleware } from '../types';
+import type { HttpClientMiddleware } from '../types';
 
 /**
  * @description 同来处理axios 不同method 之间的传值差异

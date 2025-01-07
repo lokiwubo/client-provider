@@ -1,11 +1,7 @@
-import { AnyLike } from 'ts-utils-helper';
-import {
-    ClientResponseCacheData,
-    createResponseCacheData,
-    getAdaptorData,
-    getRequestAdaptorData,
-} from '../helper';
-import { HttpClientMiddleware, RequestOptions } from '../types';
+import type { AnyLike } from 'ts-utils-helper';
+import type { ClientResponseCacheData } from '../helper';
+import { createResponseCacheData, getAdaptorData, getRequestAdaptorData } from '../helper';
+import type { HttpClientMiddleware, RequestOptions } from '../types';
 
 /**
  * @description 前置拦截器 处理请求参数转换 请求去重 读取缓存

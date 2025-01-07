@@ -1,6 +1,6 @@
-import { AnyLike } from 'ts-utils-helper';
+import type { AnyLike } from 'ts-utils-helper';
 import { HttpClient } from './core';
-import { ClientApis, DefineHttpClient, HttpClientMiddleware, RequestTemplate } from './types';
+import type { ClientApis, DefineHttpClient, HttpClientMiddleware, RequestTemplate } from './types';
 
 const addMiddleware = (
     middleware: HttpClientMiddleware,
@@ -51,20 +51,27 @@ export const definedCreateHttpClient: DefineHttpClient = (context) => {
 };
 export * from './helper';
 
-// export const createHttpClient = definedCreateHttpClient();
-// const reportHttpClient = createHttpClient((apis) => {
-//     return {
-//         updateReport: async () => {
-//             const { data } = await apis.request<{ b: string }, { a: string }>({
-//                 url: '/report/update',
-//                 data: Object.assign({}),
-//                 method: 'POST',
-//             });
-//             return data;
-//         },
-//     };
-// });
+export const createHttpClient = definedCreateHttpClient();
+const reportHttpClient = createHttpClient((apis) => {
+    return {
+        updateReport: async () => {
+            const data = await apis.request(
+                {
+                    url: '/report/update',
+                    data: Object.assign({}),
+                    method: 'POST',
+                },
+                {
+                    adaptor: (_payload, response: { a: string }) => {
+                        return response.a;
+                    },
+                },
+            );
+            return data;
+        },
+    };
+});
 
-// reportHttpClient.setPrefix('/inspection-report-admin-api');
+reportHttpClient.setPrefix('/inspection-report-admin-api');
 
-// export const reportApi = reportHttpClient.client;
+export const reportApi = reportHttpClient.client;

@@ -1,12 +1,15 @@
-import axios, { AxiosInstance, AxiosRequestConfig, AxiosResponse } from 'axios';
-import { AnyLike, asyncMiddleware } from 'ts-utils-helper';
-import { ClientResponseCacheData, createHash, RequestConfigType } from './helper';
+import type { AxiosInstance, AxiosRequestConfig, AxiosResponse } from 'axios';
+import axios from 'axios';
+import type { AnyLike, FunctionLike } from 'ts-utils-helper';
+import { asyncMiddleware } from 'ts-utils-helper';
+import type { ClientResponseCacheData, RequestConfigType } from './helper';
+import { createHash } from './helper';
 import { createAdaptorMiddleware, createRequestAdaptorMiddleware } from './middlewares/adaptor';
 import { createAxiosMethodDiffMiddleware } from './middlewares/axios';
 import { createDelayMiddleware } from './middlewares/delay';
 import { createRetryMiddleware } from './middlewares/retry';
 import { createTimeoutMiddleware } from './middlewares/timeout';
-import { HttpClientMiddleware, RequestOptions, RequestXmlOptions } from './types';
+import type { HttpClientMiddleware, RequestOptions, RequestXmlOptions } from './types';
 
 /**
  * @description 支持中间件的HttpClient 后续可以扩展更多功能（比如缓存， 拦截器）
@@ -20,25 +23,33 @@ export class HttpClient {
     private requestCache = new Map<string, Promise<AnyLike>>();
     private responseCache = new Map<string, ClientResponseCacheData<AnyLike>>();
 
-    async request<TPayload, TResponse>(
-        requestConfig: RequestConfigType<TPayload>,
-        config?: RequestOptions<TPayload, TResponse>,
-    ): Promise<AxiosResponse<TResponse>> {
+    async request<
+        TRequest extends RequestConfigType,
+        TOption extends RequestOptions<TRequest['data'], AnyLike>,
+        TAdaptor = TOption['adaptor'] extends FunctionLike
+            ? ReturnType<TOption['adaptor']>
+            : AxiosResponse<AnyLike, TRequest['data']>,
+    >(requestConfig: TRequest, options?: TOption): Promise<TAdaptor> {
         const cacheKey = createHash(JSON.stringify(requestConfig));
         const middlewares = [
             createAxiosMethodDiffMiddleware(),
             ...(this.getMiddleWares?.() ?? []),
-            createRequestAdaptorMiddleware(cacheKey, this.requestCache, this.responseCache, config),
-            createAdaptorMiddleware(config),
+            createRequestAdaptorMiddleware(
+                cacheKey,
+                this.requestCache,
+                this.responseCache,
+                options,
+            ),
+            createAdaptorMiddleware(options),
         ];
-        if (config?.timeout) {
-            middlewares.unshift(createTimeoutMiddleware(config.timeout));
+        if (options?.timeout) {
+            middlewares.unshift(createTimeoutMiddleware(options.timeout));
         }
-        if (config?.retry) {
-            middlewares.unshift(createRetryMiddleware(config.retry));
+        if (options?.retry) {
+            middlewares.unshift(createRetryMiddleware(options.retry));
         }
-        if (config?.delay) {
-            middlewares.unshift(createDelayMiddleware(config.delay));
+        if (options?.delay) {
+            middlewares.unshift(createDelayMiddleware(options.delay));
         }
         return asyncMiddleware<AxiosRequestConfig, AnyLike>([
             ...middlewares,
@@ -52,7 +63,7 @@ export class HttpClient {
      */
     async requestXml<TResponse>(
         requestConfig: AxiosRequestConfig,
-        options: RequestXmlOptions = {},
+        options: Partial<RequestXmlOptions> = {},
     ): Promise<AxiosResponse<TResponse>> {
         return asyncMiddleware<AxiosRequestConfig, AxiosResponse<TResponse>>([
             ...(this.getMiddleWares?.() ?? []),

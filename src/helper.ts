@@ -1,6 +1,6 @@
-import { AxiosRequestConfig, isAxiosError } from 'axios';
-import { AnyLike } from 'ts-utils-helper';
-import { RequestOptions } from './types';
+import { type AxiosRequestConfig, isAxiosError } from 'axios';
+import type { AnyLike } from 'ts-utils-helper';
+import type { RequestOptions } from './types';
 
 export function getErrorMessage(error: unknown, messageKey = 'message'): string {
     if (typeof error === 'string') {
@@ -67,7 +67,7 @@ export type RequestConfigType<T = AnyLike> = Omit<AxiosRequestConfig<T>, 'params
 export const getAdaptorData = <TPayload, TData, TOptions extends RequestOptions>(
     payload: TPayload,
     response: TData,
-    request: RequestConfigType,
+    request: RequestConfigType | AxiosRequestConfig,
     options?: TOptions,
 ) => {
     return options?.adaptor?.(payload, response, request) ?? response;
