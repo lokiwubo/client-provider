@@ -11,10 +11,12 @@ export default [
             {
                 file: 'dist/index.js',
                 format: 'cjs',
+                // sourcemap: true,
             },
             {
                 file: 'dist/index.esm.js',
                 format: 'esm',
+                // sourcemap: true,
             },
         ],
         plugins: [
@@ -41,6 +43,11 @@ export default [
     {
         input: 'src/index.ts',
         output: [{ file: 'dist/index.d.ts', format: 'es' }],
-        plugins: [dts()],
+        plugins: [
+            dts({
+                respectExternal: true, // 确保仅输出声明文件，不包含外部模块
+                tsconfig: './tsconfig.types.json',
+            }),
+        ],
     },
 ];

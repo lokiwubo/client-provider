@@ -7,19 +7,31 @@ import { createHash } from './helper';
 import { createAdaptorMiddleware, createRequestAdaptorMiddleware } from './middlewares/adaptor';
 import { createAxiosMethodDiffMiddleware } from './middlewares/axios';
 import { createDelayMiddleware } from './middlewares/delay';
+import {
+    createErrorNoticeMiddleware,
+    createLoadingMiddleware,
+    createSuccessNoticeMiddleware,
+} from './middlewares/notification';
 import { createRetryMiddleware } from './middlewares/retry';
 import { createTimeoutMiddleware } from './middlewares/timeout';
-import type { HttpClientMiddleware, RequestOptions, RequestXmlOptions } from './types';
+import type {
+    HttpClientMiddleware,
+    RequestEventActionType,
+    RequestOptions,
+    RequestXmlOptions,
+} from './types';
 
 /**
  * @description 支持中间件的HttpClient 后续可以扩展更多功能（比如缓存， 拦截器）
  * @description 前置拦截器 requestAdaptor （config: requestConfig, context）=>requestConfig
  * @description 后置拦截器 adaptor (payload, response, config, context) => response 处理后的返回结果
  */
-
 export class HttpClient {
     private readonly _axios: AxiosInstance = axios.create();
-    constructor(private getMiddleWares?: () => HttpClientMiddleware[]) {}
+    constructor(
+        private eventAction: RequestEventActionType,
+        private getMiddleWares?: () => HttpClientMiddleware[],
+    ) {}
     private requestCache = new Map<string, Promise<AnyLike>>();
     private responseCache = new Map<string, ClientResponseCacheData<AnyLike>>();
 
@@ -31,8 +43,21 @@ export class HttpClient {
             : AxiosResponse<AnyLike, TRequest['data']>,
     >(requestConfig: TRequest, options?: TOption): Promise<TAdaptor> {
         const cacheKey = createHash(JSON.stringify(requestConfig));
+        const { onSuccess, onFail, onStart, onFinish } = this.eventAction;
         const middlewares = [
             createAxiosMethodDiffMiddleware(),
+            // 成功通知中间件
+            createSuccessNoticeMiddleware(onSuccess, options),
+            // 失败通知中间件
+            createErrorNoticeMiddleware(onFail, options),
+            // 加载通知中间件
+            createLoadingMiddleware(onStart, onFinish, options),
+            // 超时中间件
+            createTimeoutMiddleware(options?.timeout),
+            // 重试中间件
+            createRetryMiddleware(options?.retry),
+            // 延时中间件
+            createDelayMiddleware(options?.delay),
             ...(this.getMiddleWares?.() ?? []),
             createRequestAdaptorMiddleware(
                 cacheKey,
@@ -42,15 +67,7 @@ export class HttpClient {
             ),
             createAdaptorMiddleware(options),
         ];
-        if (options?.timeout) {
-            middlewares.unshift(createTimeoutMiddleware(options.timeout));
-        }
-        if (options?.retry) {
-            middlewares.unshift(createRetryMiddleware(options.retry));
-        }
-        if (options?.delay) {
-            middlewares.unshift(createDelayMiddleware(options.delay));
-        }
+
         return asyncMiddleware<AxiosRequestConfig, AnyLike>([
             ...middlewares,
             async (requestConfig) => {

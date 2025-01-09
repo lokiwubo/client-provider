@@ -1,6 +1,6 @@
 import { type AxiosRequestConfig, isAxiosError } from 'axios';
 import type { AnyLike } from 'ts-utils-helper';
-import type { RequestOptions } from './types';
+import type { DefineHttpClientOutput, RequestEventActionType, RequestOptions } from './types';
 
 export function getErrorMessage(error: unknown, messageKey = 'message'): string {
     if (typeof error === 'string') {
@@ -86,4 +86,13 @@ type RequestType = <
 
 export const definedRequest = <T extends RequestType>(request: T): T => {
     return request;
+};
+
+export const createRequestEventActions = <TEvent extends RequestEventActionType>(events: TEvent) =>
+    events;
+
+export const createDefinedOuPut = <TConfig extends Partial<DefineHttpClientOutput<AnyLike>>>(
+    config: TConfig,
+) => {
+    return config;
 };

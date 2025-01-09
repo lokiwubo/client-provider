@@ -1,4 +1,4 @@
-import { timeoutPromise } from 'ts-utils-helper';
+import { isValidateNumber, timeoutPromise } from 'ts-utils-helper';
 import type { HttpClientMiddleware } from '../types';
 
 /**
@@ -6,8 +6,10 @@ import type { HttpClientMiddleware } from '../types';
  * @param { number } time 超时时间，单位为毫秒
  * @returns
  */
-export const createTimeoutMiddleware = (time: number): HttpClientMiddleware => {
+export const createTimeoutMiddleware = (time?: number): HttpClientMiddleware => {
     return async (requestConfig, next) => {
-        return timeoutPromise(() => next(requestConfig), time);
+        return isValidateNumber(time)
+            ? timeoutPromise(() => next(requestConfig), time)
+            : next(requestConfig);
     };
 };

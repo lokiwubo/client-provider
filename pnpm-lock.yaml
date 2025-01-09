@@ -8,15 +8,12 @@ importers:
 
   .:
     dependencies:
-      '@rollup/plugin-node-resolve':
-        specifier: ^16.0.0
-        version: 16.0.0(rollup@4.28.1)
       axios:
         specifier: ^1.7.9
         version: 1.7.9
       ts-utils-helper:
-        specifier: ^1.0.26
-        version: 1.0.26
+        specifier: ^1.0.29
+        version: 1.0.29
     devDependencies:
       '@eslint/js':
         specifier: ^9.17.0
@@ -24,6 +21,9 @@ importers:
       '@rollup/plugin-commonjs':
         specifier: ^28.0.2
         version: 28.0.2(rollup@4.28.1)
+      '@rollup/plugin-node-resolve':
+        specifier: ^16.0.0
+        version: 16.0.0(rollup@4.28.1)
       '@rollup/plugin-terser':
         specifier: ^0.4.4
         version: 0.4.4(rollup@4.28.1)
@@ -938,8 +938,8 @@ packages:
     peerDependencies:
       typescript: '>=4.2.0'
 
-  ts-utils-helper@1.0.26:
-    resolution: {integrity: sha512-IegHL81F5meQVQPbhWREdMDSzTOHJhZ4nM2D0fuTmWs41kPfO9y/x2gmFYQd1+uEWjEXdVzVfj6SnnMeB0p+Ww==}
+  ts-utils-helper@1.0.29:
+    resolution: {integrity: sha512-3SstTAFkb6gcBaaZPfREGnGXVpOebXkreUqhDP+jbSr2u/uUjNfcYSNG/hRHk2HWX0xDlaxRHAtK4XO8VjplHw==}
 
   tslib@2.8.1:
     resolution: {integrity: sha512-oJFu94HQb+KVduSUQL7wnpmqnfmLsOA/nAh6b6EH0wCEoK0/mPeXU6c3wKDV83MkOuHPRHtSXKKU99IBazS/2w==}
@@ -1817,7 +1817,7 @@ snapshots:
     dependencies:
       typescript: 5.7.2
 
-  ts-utils-helper@1.0.26:
+  ts-utils-helper@1.0.29:
     dependencies:
       lodash-es: 4.17.21
 

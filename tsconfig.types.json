@@ -8,6 +8,7 @@
         "strict": true, // 启用所有严格类型检查选项
         "esModuleInterop": false, // 允许模块导入时使用 import 语句
         "skipLibCheck": true, // 跳过对声明文件的类型检查
-        "forceConsistentCasingInFileNames": true // 强制对文件名使用一致的大小写
+        "forceConsistentCasingInFileNames": true, // 强制对文件名使用一致的大小写
+        "noCheck": false
     }
 }
