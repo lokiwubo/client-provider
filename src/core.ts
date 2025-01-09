@@ -59,12 +59,14 @@ export class HttpClient {
             // 延时中间件
             createDelayMiddleware(options?.delay),
             ...(this.getMiddleWares?.() ?? []),
+            // 前置拦截器中间件
             createRequestAdaptorMiddleware(
                 cacheKey,
                 this.requestCache,
                 this.responseCache,
                 options,
             ),
+            // 后置拦截器中间件
             createAdaptorMiddleware(options),
         ];
 
