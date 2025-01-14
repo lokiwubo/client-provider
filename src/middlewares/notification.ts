@@ -27,6 +27,7 @@ export const createErrorNoticeMiddleware = (
             return await next(requestConfig);
         } catch (error) {
             feedbackAction(requestConfig, options, error);
+            throw error;
         }
     };
 };

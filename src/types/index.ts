@@ -35,9 +35,9 @@ export type DefineHttpEventActionType = {
 };
 
 export interface DefineHttpClient {
-    <TActions extends Partial<DefineHttpEventActionType>, TContext = undefined>(
+    <TActions extends DefineHttpEventActionType, TContext = undefined>(
         context?: TContext,
-        action?: TActions,
+        action?: Partial<TActions>,
     ): DefineHttpClientOutput<TContext>;
 }
 type Adaptor<TPayload, TResponse> = (
