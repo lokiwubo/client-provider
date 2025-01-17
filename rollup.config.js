@@ -23,7 +23,7 @@ export default [
             peerDepsExternal(),
             resolve({
                 // 确保解析模块
-                preferBuiltins: true, // 确保 lodash 不被解析为内置模块
+                preferBuiltins: true, // 优先使用内建模块
             }),
             commonjs({
                 // 将 CommonJS 模块转换为 ES6 模块

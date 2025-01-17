@@ -1,28 +1,45 @@
 import { type AxiosRequestConfig, isAxiosError } from 'axios';
-import type { AnyLike } from 'ts-utils-helper';
+import { get } from 'lodash-es';
+import type { AnyLike, IsNever, KeyPath, KeyPathValue, RecordLike } from 'ts-utils-helper';
 import type { DefineHttpClientOutput, RequestEventActionType, RequestOptions } from './types';
 
-export function getErrorMessage(error: unknown, messageKey = 'message'): string {
+/**
+ *
+ * @param  {string} error 错误对象
+ * @param  {string } messagePath 错误对应的keyPath
+ * @example
+ * getErrorMessage({ message: 'error message' }) // 'error message'
+ * const message = getErrorMessage({ response: { data: { message: 'error message' } } }, "response.data.message")  // 'error message'
+ */
+
+export function getErrorMessage<
+    const T,
+    TPath extends KeyPath<T extends RecordLike ? T : {}> & string,
+    TRequest = KeyPathValue<T extends RecordLike ? T : {}, TPath>,
+>(
+    error: T,
+    messagePath: TPath = 'message' as TPath,
+): IsNever<TRequest> extends true ? string : TRequest {
     if (typeof error === 'string') {
-        return error;
+        return error as AnyLike;
     }
     if (isAxiosError(error)) {
         const errorData = error.response?.data as Record<string, unknown> | undefined;
-        const errorDataMessage = errorData?.[messageKey];
-        if (typeof errorDataMessage === 'string') {
-            return errorDataMessage;
+        const errorDataMessage = get(errorData, messagePath, undefined);
+        if (errorDataMessage && typeof errorDataMessage === 'string') {
+            return errorDataMessage as AnyLike;
         }
     }
 
     if (error instanceof Error) {
-        return error.message;
+        return error.message as AnyLike;
     }
 
     try {
-        return JSON.stringify(error, undefined, 2);
+        return JSON.stringify(error, undefined, 2) as AnyLike;
         // eslint-disable-next-line @typescript-eslint/no-unused-vars
     } catch (err) {
-        return '' + error;
+        return ('' + error) as AnyLike;
     }
 }
 

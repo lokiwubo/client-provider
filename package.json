@@ -11,7 +11,8 @@
   ],
   "scripts": {
     "build": "rimraf dist && rollup  -c",
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "prepublishOnly": "rimraf --glob dist/**/*.js.map"
   },
   "keywords": [],
   "author": "",
@@ -22,6 +23,7 @@
     "@rollup/plugin-node-resolve": "^16.0.0",
     "@rollup/plugin-terser": "^0.4.4",
     "@rollup/plugin-typescript": "^12.1.2",
+    "@types/lodash-es": "^4.17.12",
     "eslint": "^9.17.0",
     "globals": "^15.13.0",
     "prettier": "^3.4.2",
@@ -37,6 +39,7 @@
     "axios": "^1.7.9"
   },
   "dependencies": {
+    "lodash-es": "^4.17.21",
     "ts-utils-helper": "^1.0.29"
   }
 }
