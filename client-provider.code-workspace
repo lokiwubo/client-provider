@@ -1,8 +1,24 @@
 {
-	"folders": [
-		{
-			"path": "."
-		}
-	],
-	"settings": {}
+    "folders": [
+        {
+            "path": ".",
+        },
+    ],
+    "settings": {
+        "rest-client.environmentVariables": {
+            "local": {
+                "version": "v1",
+                "token": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJwaG9uZSI6bnVsbCwidXNlcklkIjoxMSwiaWF0IjoxNzI5NjgyNDUwLCJleHAiOjE3MzAyODcyNTB9.5QGsgwLonR2SrOHf7iRV-pQe3vebnH2zXYIm720mhOM",
+                "prefix": "openloong-system-api",
+                "puyu": "eyJ0eXBlIjoiSldUIiwiYWxnIjoiSFM1MTIifQ.eyJqdGkiOiI1MDEyNzAzIiwicm9sIjoiUk9MRV9SRUdJU1RFUiIsImlzcyI6Ik9wZW5YTGFiIiwiaWF0IjoxNzI5NDc3MDAyLCJjbGllbnRJZCI6ImVibXJ2b2Q2eW8wbmx6YWVrMXlwIiwicGhvbmUiOiIxNTIyMTE4NTg2MSIsInV1aWQiOiIxMDkzZmYyNS1iMmQxLTQyMDItODIzNC05YzY2MDdiNzAwNDQiLCJlbWFpbCI6IiIsImV4cCI6MTc0NTAyOTAwMn0.wBg4Qo2fGKklHaMAzsdExLekpjSpKUN-k4oiSEEhQKGs-FCu9kzaiT77IDykfY5yM6xxvTQ2KFBHzwKATcEGwA",
+                "host": "http://localhost:3000",
+            },
+            "production": {
+                "version": "",
+                "token": "",
+                "prefix": "openloong-system-api",
+                "host": "https://admin-dev.openloong.org.cn",
+            },
+        },
+    },
 }

@@ -12,13 +12,10 @@ const addMiddleware = (
         container.delete(middleware);
     };
 };
-/**
- * @typedef {import("./types/index").DefineHttpEventActionType} DefineHttpEventActionType
- */
 
 /**
  * @param {any} context 可以传递到每个client 实例
- * @param {DefineHttpEventActionType } actions  自定义响应执行事件
+ * @param {import('./types').DefineHttpEventActionType } actions  自定义响应执行事件
  * @returns
  */
 export const definedCreateHttpClient: DefineHttpClient = (context, actions) => {
@@ -69,8 +66,8 @@ export const definedCreateHttpClient: DefineHttpClient = (context, actions) => {
             // 自定义client 内部定义的中间件
             const scopeMiddlewaresSet = new Set<HttpClientMiddleware>([]);
             const httpClient = new HttpClient(eventActions, () => [
-                ...containerMiddlewaresSet,
-                ...scopeMiddlewaresSet,
+                ...Array.from(containerMiddlewaresSet),
+                ...Array.from(scopeMiddlewaresSet),
             ]);
             const apis: ClientApis = {
                 use: (middleware: HttpClientMiddleware) =>
