@@ -32,9 +32,9 @@ export const definedCreateHttpClient: DefineHttpClient = (context, actions) => {
         set count(newCount: number) {
             if (newCount !== this._count) {
                 if (this._count === 0 && newCount > 0) {
-                    actions?.onLoading?.(true);
+                    actions?.onLoading?.(true, newCount);
                 } else if (this._count > 0 && newCount === 0) {
-                    actions?.onLoading?.(false);
+                    actions?.onLoading?.(false, newCount);
                 }
                 this._count = newCount;
             }

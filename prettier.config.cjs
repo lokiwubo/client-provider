@@ -3,16 +3,14 @@
  * @type {import('prettier').Config}
  */
 module.exports = {
-  arrowParens: 'always',
-  trailingComma: 'es5',
-  printWidth: 100,
-  tabWidth: 4,
-  useTabs: false,
-  semi: true,
-  singleQuote: true,
-  trailingComma: 'all',
-  bracketSpacing: true,
-  jsxBracketSameLine: false,
-  arrowParens: 'always',
-  endOfLine: 'auto',
+    arrowParens: 'always',
+    printWidth: 100,
+    tabWidth: 4,
+    useTabs: false,
+    semi: true,
+    singleQuote: true,
+    trailingComma: 'all',
+    bracketSpacing: true,
+    jsxBracketSameLine: false,
+    endOfLine: 'auto',
 };

@@ -31,7 +31,7 @@ export type DefineHttpClientOutput<TContext> = {
 export type DefineHttpEventActionType = {
     onSuccessNotice: (msg: string) => void;
     onErrorNotice: (error: unknown, msg?: string) => void;
-    onLoading: (isVisible: boolean) => void;
+    onLoading: (isVisible: boolean, count: number) => void;
 };
 
 export interface DefineHttpClient {

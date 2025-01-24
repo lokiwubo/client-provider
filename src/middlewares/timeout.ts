@@ -1,4 +1,5 @@
-import { isValidateNumber, timeoutPromise } from 'ts-utils-helper';
+import type { Canceler } from 'axios';
+import { isValidateNumber, TimeoutError, timeoutPromise } from 'ts-utils-helper';
 import type { HttpClientMiddleware } from '../types';
 
 /**
@@ -6,10 +7,21 @@ import type { HttpClientMiddleware } from '../types';
  * @param { number } time 超时时间，单位为毫秒
  * @returns
  */
-export const createTimeoutMiddleware = (time?: number): HttpClientMiddleware => {
+export const createTimeoutMiddleware = (
+    time?: number,
+    cancelFn?: Canceler,
+): HttpClientMiddleware => {
     return async (requestConfig, next) => {
-        return isValidateNumber(time)
-            ? timeoutPromise(() => next(requestConfig), time)
-            : next(requestConfig);
+        try {
+            const response = isValidateNumber(time)
+                ? await timeoutPromise(() => next(requestConfig), time)
+                : await next(requestConfig);
+            return response;
+        } catch (err) {
+            if (err instanceof TimeoutError) {
+                return cancelFn?.();
+            }
+            throw err;
+        }
     };
 };
