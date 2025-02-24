@@ -31,6 +31,9 @@ export const createRequestAdaptorMiddleware = (
         // 请求去重 并缓存请求
         try {
             if (!requestCache.has(cacheKey)) {
+                requestAdaptorData.url = (requestAdaptorData.url ?? '')
+                    .replace('//', '/')
+                    .replace(/\/$/, '');
                 requestCache.set(cacheKey, next(requestAdaptorData));
             }
             const responseAdaptorData = await requestCache.get(cacheKey);
