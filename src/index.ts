@@ -1,7 +1,14 @@
-import type { AnyLike } from 'ts-utils-helper';
+import { isAsyncFunction, type AnyLike } from 'ts-utils-helper';
 import { HttpClient } from './core';
 import { createDefinedOuPut, createRequestEventActions } from './helper';
-import type { ClientApis, DefineHttpClient, HttpClientMiddleware, RequestTemplate } from './types';
+import type {
+    ClientApis,
+    ClientSubscribeEventLikeType,
+    DefineHttpClient,
+    ErrorNoticeContext,
+    HttpClientMiddleware,
+    RequestTemplateLike,
+} from './types';
 
 const addMiddleware = (
     middleware: HttpClientMiddleware,
@@ -42,8 +49,13 @@ export const definedCreateHttpClient: DefineHttpClient = (context, actions) => {
     };
 
     const eventActions = createRequestEventActions({
-        onFail: (_requestConfig, options, error) => {
-            actions?.onErrorNotice?.(error, options?.errorMessage);
+        onFail: (requestConfig, options, error, from) => {
+            actions?.onErrorNotice?.(error, {
+                msg: options?.errorMessage,
+                requestConfig: requestConfig,
+                options,
+                from,
+            } as ErrorNoticeContext);
         },
         onSuccess: (_requestConfig, options) => {
             if (options?.successMessage) actions?.onSuccessNotice?.(options?.successMessage);
@@ -60,11 +72,15 @@ export const definedCreateHttpClient: DefineHttpClient = (context, actions) => {
         },
     });
     return Object.assign(
-        <T extends RequestTemplate>(
+        <T extends RequestTemplateLike>(
             defineClients: (clients: HttpClient, context: AnyLike, apis: ClientApis) => T,
         ) => {
             // 自定义client 内部定义的中间件
             const scopeMiddlewaresSet = new Set<HttpClientMiddleware>([]);
+            const scopeSubscribeSet = new Map<
+                string,
+                ClientSubscribeEventLikeType<AnyLike, AnyLike>[]
+            >();
             const httpClient = new HttpClient(eventActions, () => [
                 ...Array.from(containerMiddlewaresSet),
                 ...Array.from(scopeMiddlewaresSet),
@@ -82,14 +98,84 @@ export const definedCreateHttpClient: DefineHttpClient = (context, actions) => {
                 },
             };
             const clientApis = defineClients(httpClient, context, apis);
+            const runSubscribes = async (key: string, payload: AnyLike, response: AnyLike) => {
+                try {
+                    const subscribe = scopeSubscribeSet.get(key);
+                    if (subscribe && Array.isArray(subscribe)) {
+                        subscribe.forEach((fn) => fn(payload, response));
+                    }
+                } catch (e) {
+                    console.error(e);
+                }
+            };
             return {
                 ...apis,
-                client: clientApis,
+                client: Object.fromEntries(
+                    Object.entries(clientApis).map((item) => {
+                        const [key, value] = item;
+                        if (typeof value === 'function') {
+                            Object.assign(value, {
+                                key: `${Date.now()}`,
+                            });
+                            return [
+                                key,
+                                isAsyncFunction(value)
+                                    ? async (...args: AnyLike[]) => {
+                                          try {
+                                              const result = await Reflect.apply(
+                                                  value,
+                                                  clientApis,
+                                                  args,
+                                              );
+                                              runSubscribes(key, args, result);
+                                              return result;
+                                          } catch (e) {
+                                              eventActions.onFail(null, null, e, 'request');
+                                              throw e;
+                                          }
+                                      }
+                                    : (...args: AnyLike[]) => {
+                                          try {
+                                              const result = Reflect.apply(value, clientApis, args);
+                                              runSubscribes(key, args, result);
+                                              return result;
+                                          } catch (e) {
+                                              eventActions.onFail(null, null, e, 'request');
+                                              throw e;
+                                          }
+                                      },
+                            ];
+                        }
+                        return item;
+                    }),
+                ),
+                subscribe: (
+                    key: AnyLike,
+                    event: ClientSubscribeEventLikeType<AnyLike, AnyLike>,
+                ) => {
+                    if (typeof event !== 'function') {
+                        throw new Error('event must be a function');
+                    }
+                    scopeSubscribeSet.set(key, [...(scopeSubscribeSet.get(key) || []), event]);
+                    return () => {
+                        scopeSubscribeSet.set(
+                            key,
+                            (scopeSubscribeSet.get(key) || []).filter((fn) => fn !== event),
+                        );
+                    };
+                },
+                // clientApis,
             };
         },
         createDefinedOuPut({
-            use: (middleware: HttpClientMiddleware) =>
+            useGlobal: (middleware: HttpClientMiddleware) =>
                 addMiddleware(middleware, containerMiddlewaresSet),
+            setBaseURL: (baseURL: string) => {
+                addMiddleware(async (requestConfig, next) => {
+                    requestConfig.baseURL = baseURL;
+                    return next(requestConfig);
+                }, containerMiddlewaresSet);
+            },
         }),
     );
 };
