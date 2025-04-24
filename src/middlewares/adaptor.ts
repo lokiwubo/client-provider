@@ -1,7 +1,18 @@
+/**
+ * 暂不使用
+ */
 import type { AnyLike } from 'ts-utils-helper';
-import type { ClientResponseCacheData } from '../helper';
-import { createResponseCacheData, getAdaptorData, getRequestAdaptorData } from '../helper';
 import type { HttpClientMiddleware, RequestOptions } from '../types';
+type ClientResponseCacheData<T> = {
+    data: T;
+    updateAt: number;
+};
+const createResponseCacheData = <T>(data: T): ClientResponseCacheData<T> => {
+    return {
+        data,
+        updateAt: Date.now(),
+    };
+};
 
 /**
  * @description 前置拦截器 处理请求参数转换 请求去重 读取缓存
@@ -18,13 +29,13 @@ export const createRequestAdaptorMiddleware = (
 ): HttpClientMiddleware => {
     return async (requestConfig, next) => {
         // 请求前置拦截器
-        const requestAdaptorData = getRequestAdaptorData(requestConfig, options);
+        const requestAdaptorData = requestConfig;
         const cacheResponse = responseCache.get(cacheKey);
         //缓存命中
         if (
             cacheResponse &&
-            options?.cache &&
-            Date.now() - cacheResponse.updateAt < options.cache
+            options?.cacheTime &&
+            Date.now() - cacheResponse.updateAt < options.cacheTime
         ) {
             return cacheResponse.data;
         }
@@ -37,27 +48,12 @@ export const createRequestAdaptorMiddleware = (
                 requestCache.set(cacheKey, next(requestAdaptorData));
             }
             const responseAdaptorData = await requestCache.get(cacheKey);
-            if (options?.cache && responseAdaptorData) {
+            if (options?.cacheTime && responseAdaptorData) {
                 responseCache.set(cacheKey, createResponseCacheData(responseAdaptorData));
             }
             return await requestCache.get(cacheKey);
         } finally {
             requestCache.delete(cacheKey);
         }
-    };
-};
-
-/**
- * @description 后置拦截器 处理响应数据转换
- */
-export const createAdaptorMiddleware = (options?: RequestOptions): HttpClientMiddleware => {
-    return async (requestConfig, next) => {
-        const responseAdaptorData = getAdaptorData(
-            requestConfig.method === 'GET' ? requestConfig.params : requestConfig.data, //payload
-            await next(requestConfig), //response
-            requestConfig, //requestConfig
-            options, //配置项
-        );
-        return responseAdaptorData;
     };
 };

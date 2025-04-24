@@ -19,7 +19,7 @@ export const createTimeoutMiddleware = (
             return response;
         } catch (err) {
             if (err instanceof TimeoutError) {
-                return cancelFn?.();
+                cancelFn?.('请求超时');
             }
             throw err;
         }

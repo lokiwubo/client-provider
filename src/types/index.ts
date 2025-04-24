@@ -89,34 +89,32 @@ export interface DefineHttpClient {
         action?: Partial<TActions>,
     ): DefineHttpClientOutput<TContext>;
 }
-type Adaptor<TPayload, TResponse> = (
-    payload: TPayload,
-    response: TResponse,
-    config: AxiosRequestConfig,
-) => AnyLike;
-export interface RequestOptions<TPayload = AnyLike, TResponse = AnyLike> {
-    cache?: number;
-    requestAdaptor?: (config: AxiosRequestConfig) => AxiosRequestConfig;
-    adaptor?: Adaptor<TPayload, TResponse>;
-    /**
-     * 单位 ms 控制请求超时
-     */
-    timeout?: number; // 单位 ms
-    /**
-     * 错误后的重试次数
-     */
-    retry?: number; // 重试次数
-    /**
-     * delay 单位 ms 控制请求间隔
-     * 延迟请求，防止请求过于频繁
-     */
-    delay?: number;
+
+export interface RequestOptions {
     /**成功时候展示信息 */
     successMessage?: string;
-    /**错误时候展示 */
+    /**错误时候展示 无则展示接口信息 */
     errorMessage?: string;
+    /**
+     * @default undefined
+     * @param {boolean | undefined} visibleErrorMessage - 是否展示错误信息
+     *   - `undefined`: 默认值 表示展示
+     *   - `false`: 不展示
+     *   - `true`: 展示
+     * */
+    visibleErrorMessage?: boolean;
     /**是否使用loading */
     showLoading?: boolean;
+    /**设置接口超时时长 单位ms */
+    timeOut?: number;
+    /**设置接口缓存时长 单位ms */
+    cacheTime?: number;
+    /**
+     * 设置接口参数默认过滤值
+     * @param ('' | null | undefined | number)
+     * @default ([])
+     */
+    filterEmptyValues?: ('' | null | undefined | number)[];
 }
 
 export interface RequestEventActionType {

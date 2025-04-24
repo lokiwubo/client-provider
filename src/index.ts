@@ -1,6 +1,5 @@
-import { isAsyncFunction, type AnyLike } from 'ts-utils-helper';
+import type { AnyLike } from 'ts-utils-helper';
 import { HttpClient } from './core';
-import { createDefinedOuPut, createRequestEventActions } from './helper';
 import type {
     ClientApis,
     ClientSubscribeEventLikeType,
@@ -9,6 +8,7 @@ import type {
     HttpClientMiddleware,
     RequestTemplateLike,
 } from './types';
+import { createDefinedOuPut, createRequestEventActions, isAsyncFunction } from './utils';
 
 const addMiddleware = (
     middleware: HttpClientMiddleware,
@@ -22,15 +22,11 @@ const addMiddleware = (
 
 /**
  * @param {any} context 可以传递到每个client 实例
- * @param {import('./types').DefineHttpEventActionType } actions  自定义响应执行事件
  * @returns
  */
 export const definedCreateHttpClient: DefineHttpClient = (context, actions) => {
     // 全局中间件
     const containerMiddlewaresSet = new Set<HttpClientMiddleware>([]);
-    /**
-     * TODO 添加请求并发数 和 请求的优先级
-     */
     const globalParams = {
         _count: 0, // 私有属性来存储实际的 count 值
         get count() {
@@ -71,33 +67,48 @@ export const definedCreateHttpClient: DefineHttpClient = (context, actions) => {
             }
         },
     });
+
     return Object.assign(
         <T extends RequestTemplateLike>(
-            defineClients: (clients: HttpClient, context: AnyLike, apis: ClientApis) => T,
+            defineClients: (httpClient: HttpClient, apis: ClientApis, context: AnyLike) => T,
         ) => {
-            // 自定义client 内部定义的中间件
-            const scopeMiddlewaresSet = new Set<HttpClientMiddleware>([]);
+            /**
+             * @description 实例client 内部全局中间件
+             */
+            const globalMiddlewaresSet = new Set<HttpClientMiddleware>([]);
+            /**
+             * @description 和中间件不同的是针对对象不一样
+             * subscribe 是针对执行对象的订阅
+             */
             const scopeSubscribeSet = new Map<
                 string,
                 ClientSubscribeEventLikeType<AnyLike, AnyLike>[]
             >();
             const httpClient = new HttpClient(eventActions, () => [
                 ...Array.from(containerMiddlewaresSet),
-                ...Array.from(scopeMiddlewaresSet),
+                ...Array.from(globalMiddlewaresSet),
             ]);
             const apis: ClientApis = {
                 use: (middleware: HttpClientMiddleware) =>
-                    addMiddleware(middleware, scopeMiddlewaresSet),
+                    addMiddleware(middleware, globalMiddlewaresSet),
                 setPrefix: (prefix: string) => {
                     addMiddleware(async (requestConfig, next) => {
-                        // const url = requestConfig.url;
-                        // requestConfig.url = `${prefix}/${url}`.replace(`${prefix}//`, `${prefix}/`);
-                        requestConfig.baseURL = prefix;
+                        requestConfig.url = `${prefix}/${requestConfig.url}`.replace(
+                            `${prefix}//`,
+                            `${prefix}/`,
+                        );
                         return next(requestConfig);
-                    }, scopeMiddlewaresSet);
+                    }, globalMiddlewaresSet);
                 },
             };
-            const clientApis = defineClients(httpClient, context, apis);
+            /**
+             * @description 使用 clientApis 创建client实例
+             * @param {T} httpClient 提供request 方法
+             * @param {AnyLike} context 传递给client实例的上下文
+             * @param {ClientApis} apis 提供中间件注册方法
+             */
+            const clientApis = defineClients(httpClient, apis, context);
+
             const runSubscribes = async (key: string, payload: AnyLike, response: AnyLike) => {
                 try {
                     const subscribe = scopeSubscribeSet.get(key);
@@ -110,45 +121,40 @@ export const definedCreateHttpClient: DefineHttpClient = (context, actions) => {
             };
             return {
                 ...apis,
-                client: Object.fromEntries(
-                    Object.entries(clientApis).map((item) => {
-                        const [key, value] = item;
+                // 代理实例对象
+                client: new Proxy(clientApis, {
+                    get: (target, key: string) => {
+                        const value = target[key];
                         if (typeof value === 'function') {
                             Object.assign(value, {
                                 key: `${Date.now()}`,
                             });
-                            return [
-                                key,
-                                isAsyncFunction(value)
-                                    ? async (...args: AnyLike[]) => {
-                                          try {
-                                              const result = await Reflect.apply(
-                                                  value,
-                                                  clientApis,
-                                                  args,
-                                              );
-                                              runSubscribes(key, args, result);
-                                              return result;
-                                          } catch (e) {
-                                              eventActions.onFail(null, null, e, 'request');
-                                              throw e;
-                                          }
+                            return isAsyncFunction(value)
+                                ? async (...args: AnyLike[]) => {
+                                      try {
+                                          const result = await Reflect.apply(value, target, args);
+                                          runSubscribes(key, args, result);
+                                          return result;
+                                      } catch (e) {
+                                          // 函数方法执行报错
+                                          eventActions.onFail(null, null, e, 'request');
+                                          throw e;
                                       }
-                                    : (...args: AnyLike[]) => {
-                                          try {
-                                              const result = Reflect.apply(value, clientApis, args);
-                                              runSubscribes(key, args, result);
-                                              return result;
-                                          } catch (e) {
-                                              eventActions.onFail(null, null, e, 'request');
-                                              throw e;
-                                          }
-                                      },
-                            ];
+                                  }
+                                : (...args: AnyLike[]) => {
+                                      try {
+                                          const result = Reflect.apply(value, target, args);
+                                          runSubscribes(key, args, result);
+                                          return result;
+                                      } catch (e) {
+                                          // 函数方法执行报错
+                                          eventActions.onFail(null, null, e, 'request');
+                                          throw e;
+                                      }
+                                  };
                         }
-                        return item;
-                    }),
-                ),
+                    },
+                }),
                 subscribe: (
                     key: AnyLike,
                     event: ClientSubscribeEventLikeType<AnyLike, AnyLike>,
@@ -164,7 +170,6 @@ export const definedCreateHttpClient: DefineHttpClient = (context, actions) => {
                         );
                     };
                 },
-                // clientApis,
             };
         },
         createDefinedOuPut({
@@ -177,24 +182,7 @@ export const definedCreateHttpClient: DefineHttpClient = (context, actions) => {
                 }, containerMiddlewaresSet);
             },
         }),
-    );
+        { context: context! },
+    ) as AnyLike;
 };
-export * from './helper';
-
-// export const createHttpClient = definedCreateHttpClient();
-// const reportHttpClient = createHttpClient((apis) => {
-//     return {
-//         updateReport: async () => {
-//             const data = await apis.request({
-//                 url: '/report/update',
-//                 data: { a: 1 },
-//                 method: 'POST',
-//             });
-//             return data;
-//         },
-//     };
-// });
-
-// reportHttpClient.setPrefix('/inspection-report-admin-api');
-
-// export const reportApi = reportHttpClient.client;
+export * from './utils';

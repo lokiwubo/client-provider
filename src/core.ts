@@ -1,25 +1,24 @@
 import type { AxiosInstance, AxiosRequestConfig, AxiosResponse } from 'axios';
 import axios from 'axios';
-import type { AnyLike, FunctionLike } from 'ts-utils-helper';
-import { asyncMiddleware, createHash } from 'ts-utils-helper';
-import type { ClientResponseCacheData, RequestConfigType } from './helper';
-import { createAdaptorMiddleware, createRequestAdaptorMiddleware } from './middlewares/adaptor';
+import type { ClientResponseCacheData } from './utils';
+import { asyncMiddleware, type RequestConfigType } from './utils';
+
 import { createAxiosMethodDiffMiddleware } from './middlewares/axios';
-import { createDelayMiddleware } from './middlewares/delay';
+
 import {
     createErrorNoticeMiddleware,
     createLoadingMiddleware,
     createSuccessNoticeMiddleware,
 } from './middlewares/notification';
-import { createRetryMiddleware } from './middlewares/retry';
+
+import get from 'lodash-es/get';
+import type { AnyLike } from 'ts-utils-helper';
+import { createHash } from 'ts-utils-helper';
+import { createRequestAdaptorMiddleware } from './middlewares/adaptor';
+import { createRecordCancelTokenMiddleware } from './middlewares/recordCanceler';
 import { createTimeoutMiddleware } from './middlewares/timeout';
 import type { HttpClientMiddleware, RequestEventActionType, RequestOptions } from './types';
 
-/**
- * @description 支持中间件的HttpClient 后续可以扩展更多功能（比如缓存， 拦截器）
- * @description 前置拦截器 requestAdaptor （config: requestConfig, context）=>requestConfig
- * @description 后置拦截器 adaptor (payload, response, config, context) => response 处理后的返回结果
- */
 export class HttpClient {
     private readonly _axios: AxiosInstance = axios.create();
     constructor(
@@ -28,51 +27,43 @@ export class HttpClient {
     ) {}
     private requestCache = new Map<string, Promise<AnyLike>>();
     private responseCache = new Map<string, ClientResponseCacheData<AnyLike>>();
-
     request = async <
-        TRequest extends RequestConfigType,
-        TOption extends RequestOptions<TRequest['data'], AnyLike>,
-        TAdaptor = TOption['adaptor'] extends FunctionLike
-            ? ReturnType<TOption['adaptor']>
-            : AxiosResponse<AnyLike, TRequest['data']>,
+        TResponse,
+        TRequest extends RequestConfigType = RequestConfigType,
+        TOption extends RequestOptions = RequestOptions,
     >(
         requestConfig: TRequest,
         options?: TOption,
-    ): Promise<TAdaptor> => {
-        const cacheKey = createHash(JSON.stringify(requestConfig));
+    ): Promise<AxiosResponse<TResponse, TRequest['data']>> => {
         const { onSuccess, onFail, onStart, onFinish } = this.eventAction;
         const cancelTokenSource = axios.CancelToken.source();
         requestConfig.cancelToken = cancelTokenSource.token;
+        const cacheKey = createHash(JSON.stringify(requestConfig));
         const middlewares = [
-            createAxiosMethodDiffMiddleware(),
-            // 成功通知中间件
-            createSuccessNoticeMiddleware(onSuccess, options),
-            // 失败通知中间件
-            createErrorNoticeMiddleware(onFail, options),
-            // 加载通知中间件
-            createLoadingMiddleware(onStart, onFinish, options),
             // 超时中间件
-            createTimeoutMiddleware(options?.timeout, cancelTokenSource.cancel),
-            // 重试中间件
-            createRetryMiddleware(options?.retry),
-            // 延时中间件
-            createDelayMiddleware(options?.delay),
-            ...(this.getMiddleWares?.() ?? []),
-            // 前置拦截器中间件
+            createTimeoutMiddleware(options?.timeOut, cancelTokenSource.cancel),
+            createAxiosMethodDiffMiddleware(options),
+            createSuccessNoticeMiddleware(onSuccess, options),
+            createErrorNoticeMiddleware(onFail, options),
+            createLoadingMiddleware(onStart, onFinish, options),
+            createRecordCancelTokenMiddleware(cancelTokenSource.cancel),
             createRequestAdaptorMiddleware(
                 cacheKey,
                 this.requestCache,
                 this.responseCache,
                 options,
             ),
-            // 后置拦截器中间件
-            createAdaptorMiddleware(options),
+            ...(this.getMiddleWares?.() ?? []),
         ];
 
         return asyncMiddleware<AxiosRequestConfig, AnyLike>([
             ...middlewares,
             async (requestConfig) => {
-                return await this._axios.request(requestConfig);
+                requestConfig.url = get(requestConfig, 'url', '')
+                    .replace('//', '/')
+                    .replace(/\/$/, '');
+                const response = await this._axios.request(requestConfig);
+                return response;
             },
         ])(requestConfig);
     };
